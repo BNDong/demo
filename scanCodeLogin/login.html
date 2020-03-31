@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>扫码登录 - 测试页面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="./public/css/main.css">
+</head>
+<body translate="no">
+
+<div class='box'>
+    <div class='box-form'>
+        <div class='box-login-tab'></div>
+        <div class='box-login-title'>
+            <div class='i i-login'></div><h2>登录</h2>
+        </div>
+        <div class='box-login'>
+            <div class='fieldset-body' id='login_form'>
+                <button onclick="openLoginInfo();" class='b b-form i i-more' title='Mais Informações'></button>
+                <p class='field'>
+                    <label for='user'>用户账户</label>
+                    <input type='text' id='user' name='user' title='Username' placeholder="请输入用户账户/邮箱地址" />
+                </p>
+                <p class='field'>
+                    <label for='pass'>用户密码</label>
+                    <input type='password' id='pass' name='pass' title='Password' placeholder="情输入账户密码" />
+                </p>
+                <label class='checkbox'>
+                    <input type='checkbox' value='TRUE' title='Keep me Signed in' /> 记住我
+                </label>
+                <input type='submit' id='do_login' value='登录' title='登录' />
+            </div>
+        </div>
+    </div>
+    <div class='box-info'>
+        <p><button onclick="closeLoginInfo();" class='b b-info i i-left' title='Back to Sign In'></button><h3>扫码登录</h3>
+        </p>
+        <div class='line-wh'></div>
+        <div style="position: relative;">
+            <input type="hidden" id="qid" value="">
+            <div id="qrcode-exp">二维码已失效<br>点击重新获取</div>
+            <img id="qrcode" src="" />
+        </div>
+    </div>
+</div>
+<script src='./public/js/jquery.min.js'></script>
+<script src='./public/js/modernizr.min.js'></script>
+<script id="rendered-js">
+    $(document).ready(function () {
+
+        restQRCode();
+        openLoginInfo();
+        $('#qrcode-exp').click(function () {
+            restQRCode();
+            $(this).hide();
+        });
+    });
+
+    /**
+     * 打开二维码
+     */
+    function openLoginInfo() {
+        $(document).ready(function () {
+            $('.b-form').css("opacity", "0.01");
+            $('.box-form').css("left", "-100px");
+            $('.box-info').css("right", "-100px");
+        });
+    }
+
+    /**
+     * 关闭二维码
+     */
+    function closeLoginInfo() {
+        $(document).ready(function () {
+            $('.b-form').css("opacity", "1");
+            $('.box-form').css("left", "0px");
+            $('.box-info').css("right", "-5px");
+        });
+    }
+
+    /**
+     * 刷新二维码
+     */
+    var ws, wsTid = null;
+    function restQRCode() {
+
+        $.ajax({
+            url: 'http://localhost/qrcode/code.php',
+            type:'post',
+            dataType: "json",
+            async: false,
+            success:function (result) {
+                $('#qrcode').attr('src', result.img);
+                $('#qid').val(result.qid);
+            }
+        });
+
+        if ("WebSocket" in window) {
+            if (typeof ws != 'undefined'){
+                ws.close();
+                null != wsTid && window.clearInterval(wsTid);
+            }
+
+            ws = new WebSocket("ws://loc.websocket.net?qid=" + $('#qid').val());
+
+            ws.onopen = function() {
+                console.log('websocket 已连接上！');
+            };
+
+            ws.onmessage = function(e) {
+                // todo: 本函数做登录处理，登录判断，创建缓存信息！
+                console.log(e.data);
+                var result = JSON.parse(e.data);
+                console.log(result);
+                alert('登录成功：' + result.name);
+            };
+
+            ws.onclose = function() {
+                console.log('websocket 连接已关闭！');
+                $('#qrcode-exp').show();
+                null != wsTid && window.clearInterval(wsTid);
+            };
+
+            // 发送心跳
+            wsTid = window.setInterval( function () {
+                if (typeof ws != 'undefined') ws.send('1');
+            }, 50000 );
+
+        } else {
+
+            // todo: 不支持 WebSocket 的，可以使用 js 轮询处理，这里不作该功能实现！
+            alert('您的浏览器不支持 WebSocket！');
+        }
+    }
+</script>
+</body>
+</html>

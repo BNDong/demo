@@ -1,0 +1,4 @@
+vendor/*
+!.gitignore
+.idea
+.DS_Store
